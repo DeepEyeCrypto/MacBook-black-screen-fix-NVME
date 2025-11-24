@@ -54,14 +54,18 @@ This script is designed for users who need their Mac to **remain fully awake** d
 ### 1. Download the Script
 
 Download or create the script
-curl -O https://your-repo-url/power-management.sh
 
-Make it executable
-chmod +x power-management.sh
-sudo ./power-management.sh
+```bash
+curl -O https://raw.githubusercontent.com/DeepEyeCrypto/MacBook-black-screen-fix-NVME/refs/heads/main/Black-screen-fix.sh
+chmod +x Black-screen-fix.sh
+
+```
 
 ### 2. Run the Script
+```bash
+sudo ./Black-screen-fix.sh
 
+```
 
 ### 3. Verify Settings
 
