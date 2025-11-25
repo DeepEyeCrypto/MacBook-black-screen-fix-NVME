@@ -56,14 +56,14 @@ This script is designed for users who need their Mac to **remain fully awake** d
 Download or create the script
 
 ```bash
-curl -O https://raw.githubusercontent.com/DeepEyeCrypto/MacBook-black-screen-fix-NVME/refs/heads/main/Black-screen-fix.sh
-chmod +x Black-screen-fix.sh
+curl -O https://raw.githubusercontent.com/DeepEyeCrypto/MacBook-black-screen-fix-NVME/refs/heads/main/fix_nvme.sh
 
 ```
 
 ### 2. Run the Script
 ```bash
-sudo ./Black-screen-fix.sh
+chmod +x fix_nvme.sh
+sudo ./fix_nvme.sh
 
 ```
 
