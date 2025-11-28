@@ -1,101 +1,88 @@
 #!/bin/bash
 
 # ==============================================================================
-# FINAL ULTIMATE FIX: macOS NVMe Black Screen & Sleep Issues
+# FINAL ULTIMATE FIX v2.0: NVMe + Charging Black Screen Fix
 # ==============================================================================
-# 1. Disables ALL sleep/hibernate modes
-# 2. Pushes deep sleep timers to 24 hours (prevents 15-min crash)
-# 3. Deletes corrupt sleepimage file
-# 4. Forces display to wake on lid open
+# 1. Disables Deep Sleep/Hibernation (Global NVMe Fix)
+# 2. Pushes Sleep Timers to 24 Hours (15-min crash Fix)
+# 3. Fixes Display Backlight issues on Charger (AC Power Fix)
 # ==============================================================================
 
 set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Root permission check
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}Error: Please run with sudo${NC}" 
-   echo "Usage: sudo ./fix_nvme.sh"
+   echo -e "${RED}Error: Run with sudo${NC}" 
    exit 1
 fi
 
-echo -e "${YELLOW}Starting NVMe Black Screen Fix...${NC}"
+echo -e "${YELLOW}Applying NVMe + Charging Black Screen Fixes...${NC}"
 echo ""
 
 # ------------------------------------------------------------------------------
-# STEP 1: Corrupt Hibernate File Cleanup
+# STEP 1: Cleanup Corrupt Hibernate File
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[1/4] Cleaning up corrupt hibernate file...${NC}"
-# Remove existing sleepimage
+echo -e "${GREEN}[1/4] Cleaning hibernate file...${NC}"
 if [ -f /var/vm/sleepimage ]; then
     rm -f /var/vm/sleepimage
-    echo "Deleted old sleepimage."
 fi
-
-# Create a dummy locked file to prevent macOS from writing new hibernation data
+# Lock the file so macOS can't write corrupt data
 touch /var/vm/sleepimage
 chflags uchg /var/vm/sleepimage
-echo "Locked sleepimage to prevent future corruption."
-echo ""
 
 # ------------------------------------------------------------------------------
-# STEP 2: Apply Unified Power Settings (-a for Battery & Charger)
+# STEP 2: Global NVMe Safety Settings (All Sources)
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[2/4] Disabling sleep and hibernation...${NC}"
+echo -e "${GREEN}[2/4] Applying Global NVMe Safety Rules...${NC}"
+# Disable all deep sleep modes that crash NVMe
+sudo pmset -a hibernatemode 0
+sudo pmset -a standby 0
+sudo pmset -a autopoweroff 0
+sudo pmset -a powernap 0
+sudo pmset -a tcpkeepalive 0
+sudo pmset -a womp 0
+sudo pmset -a darkwakes 0
 
-# Core Sleep Settings (The "Never Sleep" rules)
-sudo pmset -a sleep 0                 # System never sleeps
-sudo pmset -a displaysleep 0          # Display never sleeps automatically
-sudo pmset -a disksleep 0             # SSD never spins down (Crucial for NVMe)
-
-# Disable Deep Sleep & Hibernation (The cause of crashes)
-sudo pmset -a hibernatemode 0         # Disable hibernation
-sudo pmset -a standby 0               # Disable standby
-sudo pmset -a autopoweroff 0          # Disable auto power off
-sudo pmset -a powernap 0              # Disable background tasks
-sudo pmset -a tcpkeepalive 0          # Disable network keepalive
-sudo pmset -a womp 0                  # Disable wake on LAN
-sudo pmset -a darkwakes 0             # Disable partial wakes
-
-# ------------------------------------------------------------------------------
-# STEP 3: Override Safety Timers (The 15-minute Fix)
-# ------------------------------------------------------------------------------
-echo -e "${GREEN}[3/4] Pushing safety timers to 24 hours...${NC}"
-# Even if sleep is 0, we push these timers to 86400 seconds (24 hours)
-# to ensure the system NEVER attempts to enter deep sleep automatically.
+# Push safety timers to 24 hours (86400 sec) to prevent 15-min crashes
 sudo pmset -a standbydelaylow 86400
 sudo pmset -a standbydelayhigh 86400
 sudo pmset -a autopoweroffdelay 86400
 
 # ------------------------------------------------------------------------------
-# STEP 4: Wake Settings
+# STEP 3: Wake & Display Settings (Global)
 # ------------------------------------------------------------------------------
-echo -e "${GREEN}[4/4] Configuring wake settings...${NC}"
-sudo pmset -a lidwake 1               # FORCE wake when lid is opened
-sudo pmset -a acwake 1                # Wake when charger is connected
-sudo pmset -a lessbright 0            # Don't dim display
-sudo pmset -a halfdim 0               # Don't half-dim display
-
-echo ""
-echo -e "${GREEN}✓ SUCCESS: All settings applied.${NC}"
-echo ""
+echo -e "${GREEN}[3/4] Configuring Global Wake Rules...${NC}"
+sudo pmset -a lidwake 1               # Force wake on lid open
+sudo pmset -a sleep 0                 # System never sleeps
+sudo pmset -a displaysleep 0          # Display never sleeps
+sudo pmset -a disksleep 0             # Disk never sleeps
 
 # ------------------------------------------------------------------------------
-# Final Check & Instructions
+# STEP 4: CHARGER SPECIFIC FIXES (New Addition)
 # ------------------------------------------------------------------------------
-echo -e "${YELLOW}Current Power Settings:${NC}"
+echo -e "${GREEN}[4/4] Applying Charger (AC) Backlight Fixes...${NC}"
+# Fixes black screen specifically when plugged in:
+
+# 1. Disable 'Wake on AC Attach' (Prevents glitchy wake when plugging in)
+sudo pmset -c acwake 0
+
+# 2. Disable Dimming features (Fixes backlight driver getting stuck)
+sudo pmset -c lessbright 0
+sudo pmset -c halfdim 0
+
+# 3. Force Integrated GPU on Charger (Prevents dGPU crash on 15" models)
+# Note: If you have a 13" model, this command is harmless/ignored.
+sudo pmset -c gpuswitch 0 2>/dev/null || true
+
+echo ""
+echo -e "${GREEN}✓ SUCCESS: All fixes applied!${NC}"
+echo ""
+echo -e "${YELLOW}Current Settings:${NC}"
 pmset -g
 echo ""
-echo -e "${RED}!!! IMPORTANT !!!${NC}"
-echo "Script run karne ke baad, ye FINAL step zaroor karein:"
-echo "1. Shut Down your Mac."
-echo "2. Perform an SMC Reset (Hold Power button for 10s on startup)."
-echo "3. Perform a PRAM Reset (Cmd+Opt+P+R) immediately after turning on."
-echo ""
-echo "Agar iske baad bhi issue aaye, to NVMe boot argument use karna padega:"
-echo "Command: sudo nvram boot-args=\"nvme=-1\""
+echo -e "${RED}IMPORTANT:${NC} Restart now and perform an SMC Reset immediately."
