@@ -62,8 +62,8 @@ curl -O https://raw.githubusercontent.com/DeepEyeCrypto/MacBook-black-screen-fix
 
 ### 2. Run the Script
 ```bash
-chmod +x fix_nvme.sh
-sudo ./fix_nvme.sh
+chmod +x fix_blackscreen.sh
+sudo ./fix_blackscreen.sh
 
 ```
 
